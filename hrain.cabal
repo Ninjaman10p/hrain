@@ -1,0 +1,39 @@
+cabal-version:      2.4
+name:               hrain
+version:            0.1.0.0
+synopsis:
+
+-- A longer description of the package.
+-- description:
+homepage:
+
+-- A URL where users can report bugs.
+-- bug-reports:
+license:            NONE
+author:             Peter Gow
+maintainer:         petergow@live.com.au
+
+-- A copyright notice.
+-- copyright:
+-- category:
+extra-source-files: CHANGELOG.md
+
+executable hrain
+    main-is:          Main.hs
+    ghc-options:      -threaded -Wall
+
+    -- Modules included in this executable, other than Main.
+    -- other-modules:
+
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+    build-depends:    base ^>=4.15.1.0
+                    , brick ^>=0.68
+                    , microlens
+                    , containers
+                    , vty
+                    , linear
+                    , random
+                    , mtl
+    hs-source-dirs:   app
+    default-language: Haskell2010
