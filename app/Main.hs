@@ -8,16 +8,10 @@ import Brick
   ( App(..), AttrMap, BrickEvent(..), EventM, Next, Widget
   , customMain
   , neverShowCursor
-  , emptyWidget
   , continue
   , halt
   , str
   , fill
-  , setAvailableSize
-  , Padding (..)
-  , padTop
-  , padBottom
-  , padRight
   , attrMap, on
   , vBox
   , cropLeftBy, cropTopBy
@@ -26,20 +20,23 @@ import Brick
   , fg
   , withAttr
   , AttrName
-  , withBorderStyle
   , (<+>)
   )
 import System.Random
 import Brick.BChan (newBChan, writeBChan)
 import Brick.Widgets.Border
-import Brick.Widgets.Border.Style
+-- import Brick.Widgets.Border.Style
 import qualified Brick.Widgets.Center as C
 import qualified Graphics.Vty as V
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
 import Data.Foldable (asum)
 import Control.Concurrent (forkIO, threadDelay)
-import Control.Monad.State.Lazy (state, State(..), get, put, execState, evalState)
+import Control.Monad.State.Lazy
+  ( state
+  , State
+  , evalState
+  )
 
 -- Types
 data Tick = Tick StdGen
@@ -83,7 +80,7 @@ app = App { appDraw = drawUI
 main :: IO ()
 main = do
   chan <- newBChan 10
-  forkIO . forever $ do
+  _ <- forkIO . forever $ do
     gen <- initStdGen
     writeBChan chan $ Tick gen
     threadDelay 20000
@@ -127,7 +124,7 @@ tickLayers :: Vel -> [RainLayer] -> [RainLayer]
 tickLayers v = map $ \rl -> rl { rainMap = M.mapKeys (addVel v) $ rainMap rl }
 
 spawnRain :: [Char] -> Size -> Vel -> [RainLayer] -> State StdGen [RainLayer]
-spawnRain reps s v rls = sequence $ do
+spawnRain reps s _ rls = sequence $ do
   rl <- rls
   let spawnLoop = foldK $ replicate (weighting rl) $ \rli -> do
         pos <- state $ randWindowBorder s
@@ -163,10 +160,10 @@ trimRain s =
     wS = windowScale s
     lX = 2 + 2*(pX . toPos $ wS)
     lY = 2 + 2*(pY . toPos $ wS)
-    pred (Pos dX dY) _ = 0 <= dX && dX <= lX && 0 <= dY && dY <= lY
+    predicate (Pos dX dY) _ = 0 <= dX && dX <= lX && 0 <= dY && dY <= lY
   in
     map (\rl ->
-      rl { rainMap = M.filterWithKey pred $ rainMap rl }
+      rl { rainMap = M.filterWithKey predicate $ rainMap rl }
     )
       
 
