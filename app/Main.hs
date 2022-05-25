@@ -3,6 +3,7 @@
 module Main where
 
 import Control.Monad (void, forever, (<=<))
+import System.Environment (getArgs)
 
 import Brick
   ( App(..), AttrMap, BrickEvent(..), EventM, Next, Widget
@@ -12,12 +13,12 @@ import Brick
   , halt
   , str
   , fill
+  , fg
   , attrMap, on
   , vBox
   , cropLeftBy, cropTopBy
   , cropBottomTo, cropRightTo
   , hBox
-  , fg
   , withAttr
   , AttrName
   , (<+>)
@@ -65,6 +66,7 @@ data RainSim = RainSim
   , windowSize :: Size
   , rainReps   :: [Char]
   , rainVel    :: Vel
+  , rainColors :: AttrMap
   }
 
 -- Main
@@ -74,29 +76,114 @@ app = App { appDraw = drawUI
           , appChooseCursor = neverShowCursor
           , appHandleEvent = handleEvent
           , appStartEvent = return
-          , appAttrMap = const theMap
+          , appAttrMap = rainColors
           }
 
 main :: IO ()
 main = do
+  args <- getArgs
+  case args of
+    []            -> mkSim 10000 rainSim
+    ("snow":_)    -> mkSim 100000 snowSim
+    ("rainbow":_) -> mkSim 20000 rainbowSim
+    ("matrix":_)  -> mkSim 100000 matrixSim
+    _             -> mkSim 10000 rainSim
+
+mkSim :: Int -> RainSim -> IO ()
+mkSim t rain = do
   chan <- newBChan 10
   _ <- forkIO . forever $ do
     gen <- initStdGen
     writeBChan chan $ Tick gen
-    threadDelay 20000
+    threadDelay t
   let builder = V.mkVty V.defaultConfig
   initialVty <- builder
-  void $ customMain initialVty builder (Just chan) app defaultRain
+  void $ customMain initialVty builder (Just chan) app rain
 
-defaultRain :: RainSim
-defaultRain = RainSim
+rainSim :: RainSim
+rainSim = RainSim
   { rainLayers =
       [ RainLayer "rainfg" 10 $ M.empty
       , RainLayer "rainbg" 3 $ M.empty
       , RainLayer "rainb" 3 $ M.empty
       ]
+  , rainColors = attrMap (V.white `on` V.black)
+      [ ("rainfg", withStyles [V.italic] $ V.blue `on` V.black)
+      , ("rainbg", withStyles [V.dim, V.italic] $ V.blue `on` V.black)
+      , ("rainb", withStyles [V.italic] $ V.white `on` V.black)
+      ]
   , windowSize = Size $ Pos 20 10
   , rainReps = ",.'"
+  -- , rainReps = "☺"    -- It's raining dwarves
+  -- , rainReps = ",.'🐱🐶" -- It's raining cat's and dogs
+  -- , rainReps = "🔪" -- It's raining knives
+  , rainVel = Vel $ Pos (-1) 1
+  }
+
+snowSim :: RainSim
+snowSim = RainSim
+  { rainLayers =
+      [ RainLayer "rainfg" 10 $ M.empty
+      , RainLayer "rainbg" 3 $ M.empty
+      , RainLayer "rainb" 3 $ M.empty
+      ]
+  , rainColors = attrMap (V.white `on` V.black)
+      [ ("rainfg", withStyles [V.italic] $ V.blue `on` V.black)
+      , ("rainbg", withStyles [V.dim, V.italic] $ V.blue `on` V.black)
+      , ("rainb", withStyles [V.italic] $ V.white `on` V.black)
+      ]
+  , windowSize = Size $ Pos 20 10
+  , rainReps = "*#❄"
+  , rainVel = Vel $ Pos 1 1
+  }
+
+matrixSim :: RainSim
+matrixSim = RainSim
+  { rainLayers =
+      [ RainLayer "matrixfg" 10 $ M.empty
+      , RainLayer "matrixbg" 3 $ M.empty
+      ]
+  , rainColors = attrMap (V.white `on` V.black)
+      [ ("matrixfg", withStyles [] $ V.green `on` V.black)
+      , ("matrixbg", withStyles [V.dim] $ V.green `on` V.black)
+      ]
+  , windowSize = Size $ Pos 20 10
+  , rainReps = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890/:?,.;☺"
+  , rainVel = Vel $ Pos 0 1
+  }
+
+rainbowSim :: RainSim
+rainbowSim = RainSim
+  { rainLayers =
+      [ RainLayer "red"     3 $ M.empty
+      , RainLayer "green"   3 $ M.empty
+      , RainLayer "blue"    3 $ M.empty
+      , RainLayer "magenta" 3 $ M.empty
+      , RainLayer "yellow"  3 $ M.empty
+      , RainLayer "cyan"    3 $ M.empty
+      , RainLayer "bred"     3 $ M.empty
+      , RainLayer "bgreen"   3 $ M.empty
+      , RainLayer "bblue"    3 $ M.empty
+      , RainLayer "bmagenta" 3 $ M.empty
+      , RainLayer "byellow"  3 $ M.empty
+      , RainLayer "bcyan"    3 $ M.empty
+      ]
+  , rainColors = attrMap (V.white `on` V.black)
+      [ ("red",     fg V.red)
+      , ("green",   fg V.green)
+      , ("blue",    fg V.blue)
+      , ("magenta", fg V.magenta)
+      , ("yellow",  fg V.yellow)
+      , ("cyan",    fg V.cyan)
+      , ("bred",     withStyles [V.bold] $ fg V.red)
+      , ("bgreen",   withStyles [V.bold] $ fg V.green)
+      , ("bblue",    withStyles [V.bold] $ fg V.blue)
+      , ("bmagenta", withStyles [V.bold] $ fg V.magenta)
+      , ("byellow",  withStyles [V.bold] $ fg V.yellow)
+      , ("bcyan",    withStyles [V.bold] $ fg V.cyan)
+      ]
+  , windowSize = Size $ Pos 20 10
+  , rainReps = "*"
   , rainVel = Vel $ Pos 1 1
   }
 
@@ -106,9 +193,6 @@ handleEvent :: RainSim -> BrickEvent Name Tick -> EventM Name (Next RainSim)
 handleEvent p (AppEvent (Tick gen)) =
   let
     rainKey = gen
-    -- rainSpawnLoop = foldr (<=<) return
-                  -- . replicate (spawnN p)
-                  -- $ spawnRain (rainReps p) (windowSize p) (rainVel p)
   in
     continue $ p
       { rainLayers = flip evalState rainKey $ do
@@ -149,10 +233,8 @@ rectPoints (Size (Pos sx sy)) =
 
 randChoice :: [a] -> StdGen -> (a, StdGen)
 randChoice l gen =
-  let
-    (ind, newGen) = randomR (0, (length l) - 1) gen
-  in
-    (l !! ind, newGen)
+  let (ind, newGen) = randomR (0, (length l) - 1) gen
+  in  (l !! ind, newGen)
 
 trimRain :: Size -> [RainLayer] -> [RainLayer]
 trimRain s =
@@ -162,10 +244,7 @@ trimRain s =
     lY = 2 + 2*(pY . toPos $ wS)
     predicate (Pos dX dY) _ = 0 <= dX && dX <= lX && 0 <= dY && dY <= lY
   in
-    map (\rl ->
-      rl { rainMap = M.filterWithKey predicate $ rainMap rl }
-    )
-      
+    map (\rl -> rl { rainMap = M.filterWithKey predicate $ rainMap rl })
 
 addVel :: Vel -> Pos -> Pos
 addVel v (Pos x y) = Pos
@@ -178,7 +257,9 @@ drawUI :: RainSim -> [Widget Name]
 drawUI p = [window p]
 
 window :: RainSim -> Widget Name
-window r = C.center $ windowBorder (windowSize r) $ mkRain r
+window r = C.center
+         $ windowBorder (windowSize r)
+         $ mkRain r
 
 windowBorder :: Size -> Widget Name -> Widget Name
 windowBorder s@(Size (Pos dx dy)) w =
@@ -212,24 +293,14 @@ mkRain r = vBox $ do
     return $ rainSq (Pos x y) r
 
 rainSq :: Pos -> RainSim -> Widget Name
-rainSq p r = fromMaybe (chr ' ') $ asum $ map (\rl ->
-  withAttr (rainStyle rl) <$> chr . rep <$> (M.lookup p $ rainMap rl)) $
-    rainLayers r
+rainSq p r =
+  let
+    sqLayer rl = withAttr (rainStyle rl) . chr . rep <$> (M.lookup p $ rainMap rl)
+  in 
+    fromMaybe (chr ' ') . asum . map sqLayer $ rainLayers r
 
 chr :: Char -> Widget a
-chr = str . singleton
-
-singleton :: a -> [a]
-singleton a = [a]
-
-theMap :: AttrMap
-theMap = attrMap (V.white `on` V.black)
-  [ ("window", withStyle V.dim $ fg V.white)
-  , ("windowsill", withStyle V.dim $ V.red `on` V.red)
-  , ("rainfg", withStyle V.italic $ V.blue `on` V.black)
-  , ("rainbg", withStyles [V.dim, V.italic] $ V.blue `on` V.black)
-  , ("rainb", withStyles [V.italic] $ V.white `on` V.black)
-  ]
+chr = str . return
 
 -- what are they, lisp programmers forcing me to use brackets?
 -- unacceptable
