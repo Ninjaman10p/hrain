@@ -7,6 +7,7 @@ module Presets
   , dwarfSim
   , catsDogsSim
   , knifeSim
+  , dolphinSim
   ) where
 
 import Sim
@@ -156,3 +157,15 @@ knifeSim = RainSim
   , rainVel = Vel $ Pos 1 1
   }
 
+dolphinSim :: RainSim
+dolphinSim = RainSim
+  { rainLayers =
+      [ RainLayer "dolphin" 3 $ M.empty
+      ]
+  , rainColors = attrMap (V.white `on` V.black)
+      [ ("dolphin", withStyles [V.italic] $ V.blue `on` V.black)
+      ]
+  , windowSize = Size $ Pos 20 10
+  , rainReps = "🐬" -- It's raining knives
+  , rainVel = Vel $ Pos 1 (-1)
+  }
