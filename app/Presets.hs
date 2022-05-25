@@ -4,6 +4,9 @@ module Presets
   , snowSim
   , matrixSim
   , rainbowSim
+  , dwarfSim
+  , catsDogsSim
+  , knifeSim
   ) where
 
 import Sim
@@ -101,3 +104,55 @@ rainbowSim = RainSim
   , rainReps = "*"
   , rainVel = Vel $ Pos 1 1
   }
+  
+dwarfSim :: RainSim
+dwarfSim = RainSim
+  { rainLayers =
+      [ RainLayer "rainfg" 10 $ M.empty
+      , RainLayer "rainbg" 3 $ M.empty
+      , RainLayer "rainb" 3 $ M.empty
+      ]
+  , rainColors = attrMap (V.white `on` V.black)
+      [ ("rainfg", withStyles [V.italic] $ V.blue `on` V.black)
+      , ("rainbg", withStyles [V.dim, V.italic] $ V.blue `on` V.black)
+      , ("rainb", withStyles [V.italic] $ V.white `on` V.black)
+      ]
+  , windowSize = Size $ Pos 20 10
+  , rainReps = "☺"    -- It's raining dwarves
+  , rainVel = Vel $ Pos 1 1
+  }
+
+catsDogsSim :: RainSim
+catsDogsSim = RainSim
+  { rainLayers =
+      [ RainLayer "rainfg" 10 $ M.empty
+      , RainLayer "rainbg" 3 $ M.empty
+      , RainLayer "rainb" 3 $ M.empty
+      ]
+  , rainColors = attrMap (V.white `on` V.black)
+      [ ("rainfg", withStyles [V.italic] $ V.blue `on` V.black)
+      , ("rainbg", withStyles [V.dim, V.italic] $ V.blue `on` V.black)
+      , ("rainb", withStyles [V.italic] $ V.white `on` V.black)
+      ]
+  , windowSize = Size $ Pos 20 10
+  , rainReps = ",.'🐱🐶" -- It's raining cat's and dogs
+  , rainVel = Vel $ Pos 1 1
+  }
+
+knifeSim :: RainSim
+knifeSim = RainSim
+  { rainLayers =
+      [ RainLayer "rainfg" 10 $ M.empty
+      , RainLayer "rainbg" 3 $ M.empty
+      , RainLayer "rainb" 3 $ M.empty
+      ]
+  , rainColors = attrMap (V.white `on` V.black)
+      [ ("rainfg", withStyles [V.italic] $ V.blue `on` V.black)
+      , ("rainbg", withStyles [V.dim, V.italic] $ V.blue `on` V.black)
+      , ("rainb", withStyles [V.italic] $ V.white `on` V.black)
+      ]
+  , windowSize = Size $ Pos 20 10
+  , rainReps = "🔪" -- It's raining knives
+  , rainVel = Vel $ Pos 1 1
+  }
+

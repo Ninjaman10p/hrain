@@ -13,7 +13,6 @@ module Sim
   ) where
 
 import Control.Monad (void, forever, (<=<))
-import System.Environment (getArgs)
 
 import Brick
   ( App(..), AttrMap, BrickEvent(..), EventM, Next, Widget
@@ -23,8 +22,6 @@ import Brick
   , halt
   , str
   , fill
-  , fg
-  , attrMap, on
   , vBox
   , cropLeftBy, cropTopBy
   , cropBottomTo, cropRightTo
@@ -222,9 +219,3 @@ withStyle = flip V.withStyle
 
 withStyles :: [V.Style] -> V.Attr -> V.Attr
 withStyles s l = foldr withStyle l s
-
-doN :: Int -> (a -> a) -> a -> a
-doN n = foldr (.) id . take n . repeat
-
-compose :: [a -> a] -> a -> a
-compose = foldr (.) id

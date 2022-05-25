@@ -10,8 +10,11 @@ main :: IO ()
 main = do
   args <- getArgs
   case args of
-    []            -> mkSim 10000 rainSim
-    ("snow":_)    -> mkSim 100000 snowSim
-    ("rainbow":_) -> mkSim 20000 rainbowSim
-    ("matrix":_)  -> mkSim 100000 matrixSim
-    _             -> mkSim 10000 rainSim
+    []              -> mkSim 10000 rainSim
+    ("snow":_)      -> mkSim 100000 snowSim
+    ("rainbow":_)   -> mkSim 20000 rainbowSim
+    ("matrix":_)    -> mkSim 100000 matrixSim
+    ("dwarf":_)     -> mkSim 50000 dwarfSim
+    ("cats-dogs":_) -> mkSim 20000 catsDogsSim
+    ("knife":_)     -> mkSim 10000 knifeSim
+    _               -> mkSim 10000 rainSim
