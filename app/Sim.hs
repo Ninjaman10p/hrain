@@ -142,13 +142,13 @@ randWindowBorder s v = randChoice $ rectPoints v $ windowScale s
 
 rectPoints :: Vel -> Size -> [Pos]
 rectPoints (Vel (Pos dx dy)) (Size (Pos sx sy)) =
-  [Pos x (gy-1) | x <- [0..sx], gy <- [1..dy]]
+  [Pos x y | x <- [0..sx], y <- [0..dy-1]]
   ++
-  [Pos x (sy+1-gy) | x <- [0..sx], gy <- [1..(-dy)]]
+  [Pos x y | x <- [0..sx], y <- [1+sy+dy..sy]]
   ++
-  [Pos (gx-1) y | y <- [1..sy-1], gx <- [1..dx]]
+  [Pos x y | y <- [0..sy], x <- [0..dx-1]]
   ++
-  [Pos (sx+1-gx) y | y <- [1..sy-1], gx <- [1..(-dx)]]
+  [Pos x y | y <- [0..sy], x <- [1+sx+dx..sx]]
 
 randChoice :: [a] -> StdGen -> (a, StdGen)
 randChoice l gen =
