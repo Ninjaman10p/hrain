@@ -59,21 +59,21 @@ data Pos = Pos { pX :: Int, pY :: Int }
 
 newtype Size = Size { toPos :: Pos }
 newtype Vel  = Vel { vToPos :: Pos }
+  deriving (Show, Eq)
 
 type Rain = M.Map Pos Droplet
 
 data RainLayer = RainLayer
   { rainStyle :: AttrName
   , weighting :: Int
+  , rainVel    :: Vel
   , rainMap   :: Rain
-  -- , velDist   :: [Vel]
   } deriving (Show, Eq)
 
 data RainSim = RainSim
   { rainLayers :: [RainLayer]
   , windowSize :: Size
   , rainReps   :: [Char]
-  , rainVel    :: Vel
   , rainColors :: AttrMap
   }
 
@@ -107,19 +107,18 @@ handleEvent p (AppEvent (Tick gen)) =
   in
     continue $ p
       { rainLayers = flip evalState rainKey $ do
-          let vel = rainVel p
-              ticked = tickLayers vel $ rainLayers p
-          spawned <- spawnRain (rainReps p) (windowSize p) (rainVel p) ticked
+          let ticked = tickLayers $ rainLayers p
+          spawned <- spawnRain (rainReps p) (windowSize p) ticked
           return $ trimRain (windowSize p) spawned
       }
 handleEvent p (VtyEvent (V.EvKey (V.KChar 'q') [])) = halt p
 handleEvent p _                                     = continue p
 
-tickLayers :: Vel -> [RainLayer] -> [RainLayer]
-tickLayers v = map $ \rl -> rl { rainMap = M.mapKeys (addVel v) $ rainMap rl }
+tickLayers :: [RainLayer] -> [RainLayer]
+tickLayers = map $ \rl -> rl { rainMap = M.mapKeys (addVel . rainVel $ rl) $ rainMap rl }
 
-spawnRain :: [Char] -> Size -> Vel -> [RainLayer] -> State StdGen [RainLayer]
-spawnRain reps s v rls = sequence $ do
+spawnRain :: [Char] -> Size -> [RainLayer] -> State StdGen [RainLayer]
+spawnRain reps s rls = sequence $ do
   rl <- rls
   let spawnLoop = foldK $ replicate (weighting rl) $ \rli -> do
         skip <- state $ uniform
@@ -127,7 +126,8 @@ spawnRain reps s v rls = sequence $ do
         then
           return rli
         else do
-          pos <- state $ randWindowBorder s v
+          let vel = rainVel rli
+          pos <- state $ randWindowBorder s vel
           char <- state $ randChoice reps
           return $ rli { rainMap = M.insert pos (Droplet char) $ rainMap rli }
   return $ spawnLoop rl
