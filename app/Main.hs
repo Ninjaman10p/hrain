@@ -11,7 +11,9 @@ main = do
   args <- getArgs
   case args of
     []                -> mkSim 10000 rainSim
+    ("windy":_)       -> mkSim 10000 windyRainSim
     ("snow":_)        -> mkSim 100000 snowSim
+    ("snowstorm":_)   -> mkSim 10000 snowstormSim
     ("rainbow":_)     -> mkSim 20000 rainbowSim
     ("matrix":_)      -> mkSim 100000 matrixSim
     ("dwarf":_)       -> mkSim 50000 dwarfSim
