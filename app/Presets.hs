@@ -1,7 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Presets
   ( rainSim
+  , windyRainSim
   , snowSim
+  , snowstormSim
   , matrixSim
   , rainbowSim
   , dwarfSim
@@ -33,14 +35,11 @@ rainSim = RainSim
       ]
   , windowSize = Size $ Pos 20 10
   , rainReps = ",.'"
-  -- , rainReps = "☺"    -- It's raining dwarves
-  -- , rainReps = ",.'🐱🐶" -- It's raining cat's and dogs
-  -- , rainReps = "🔪" -- It's raining knives
   , rainVel = Vel $ Pos (-1) 1
   }
 
-snowSim :: RainSim
-snowSim = RainSim
+windyRainSim :: RainSim
+windyRainSim = RainSim
   { rainLayers =
       [ RainLayer "rainfg" 10 $ M.empty
       , RainLayer "rainbg" 3 $ M.empty
@@ -52,8 +51,42 @@ snowSim = RainSim
       , ("rainb", withStyles [V.italic] $ V.white `on` V.black)
       ]
   , windowSize = Size $ Pos 20 10
+  , rainReps = ",.'"
+  , rainVel = Vel $ Pos (-2) 1
+  }
+
+snowSim :: RainSim
+snowSim = RainSim
+  { rainLayers =
+      [ RainLayer "snowfg" 10 $ M.empty
+      , RainLayer "snowbg" 3 $ M.empty
+      , RainLayer "snowb" 3 $ M.empty
+      ]
+  , rainColors = attrMap (V.white `on` V.black)
+      [ ("snowfg", withStyles [V.italic] $ V.blue `on` V.black)
+      , ("snowbg", withStyles [V.dim, V.italic] $ V.blue `on` V.black)
+      , ("snowb", withStyles [V.italic] $ V.white `on` V.black)
+      ]
+  , windowSize = Size $ Pos 20 10
   , rainReps = "*#❄"
   , rainVel = Vel $ Pos 1 1
+  }
+
+snowstormSim :: RainSim
+snowstormSim = RainSim
+  { rainLayers =
+      [ RainLayer "snowfg" 10 $ M.empty
+      , RainLayer "snowbg" 3 $ M.empty
+      , RainLayer "snowb" 3 $ M.empty
+      ]
+  , rainColors = attrMap (V.white `on` V.black)
+      [ ("snowfg", withStyles [V.italic] $ V.blue `on` V.black)
+      , ("snowbg", withStyles [V.dim, V.italic] $ V.blue `on` V.black)
+      , ("snowb", withStyles [V.italic] $ V.white `on` V.black)
+      ]
+  , windowSize = Size $ Pos 20 10
+  , rainReps = "*#❄"
+  , rainVel = Vel $ Pos (-3) 1
   }
 
 matrixSim :: RainSim
