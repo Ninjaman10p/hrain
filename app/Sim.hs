@@ -65,15 +65,15 @@ type Rain = M.Map Pos Droplet
 
 data RainLayer = RainLayer
   { rainStyle :: AttrName
+  , rainReps  :: [Char]
   , weighting :: Int
-  , rainVel    :: Vel
+  , rainVel   :: Vel
   , rainMap   :: Rain
   } deriving (Show, Eq)
 
 data RainSim = RainSim
   { rainLayers :: [RainLayer]
   , windowSize :: Size
-  , rainReps   :: [Char]
   , rainColors :: AttrMap
   }
 
@@ -108,7 +108,7 @@ handleEvent p (AppEvent (Tick gen)) =
     continue $ p
       { rainLayers = flip evalState rainKey $ do
           let ticked = tickLayers $ rainLayers p
-          spawned <- spawnRain (rainReps p) (windowSize p) ticked
+          spawned <- spawnRain (windowSize p) ticked
           return $ trimRain (windowSize p) spawned
       }
 handleEvent p (VtyEvent (V.EvKey (V.KChar 'q') [])) = halt p
@@ -117,8 +117,8 @@ handleEvent p _                                     = continue p
 tickLayers :: [RainLayer] -> [RainLayer]
 tickLayers = map $ \rl -> rl { rainMap = M.mapKeys (addVel . rainVel $ rl) $ rainMap rl }
 
-spawnRain :: [Char] -> Size -> [RainLayer] -> State StdGen [RainLayer]
-spawnRain reps s rls = sequence $ do
+spawnRain :: Size -> [RainLayer] -> State StdGen [RainLayer]
+spawnRain s rls = sequence $ do
   rl <- rls
   let spawnLoop = foldK $ replicate (weighting rl) $ \rli -> do
         skip <- state $ uniform
@@ -127,6 +127,7 @@ spawnRain reps s rls = sequence $ do
           return rli
         else do
           let vel = rainVel rli
+              reps = rainReps rli
           pos <- state $ randWindowBorder s vel
           char <- state $ randChoice reps
           return $ rli { rainMap = M.insert pos (Droplet char) $ rainMap rli }
