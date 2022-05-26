@@ -66,6 +66,7 @@ data RainLayer = RainLayer
   { rainStyle :: AttrName
   , weighting :: Int
   , rainMap   :: Rain
+  -- , velDist   :: [Vel]
   } deriving (Show, Eq)
 
 data RainSim = RainSim
@@ -141,14 +142,16 @@ randWindowBorder :: Size -> Vel -> StdGen -> (Pos, StdGen)
 randWindowBorder s v = randChoice $ rectPoints v $ windowScale s
 
 rectPoints :: Vel -> Size -> [Pos]
-rectPoints (Vel (Pos dx dy)) (Size (Pos sx sy)) =
-  [Pos x y | x <- [0..sx], y <- [0..dy-1]]
-  ++
-  [Pos x y | x <- [0..sx], y <- [1+sy+dy..sy]]
-  ++
-  [Pos x y | y <- [0..sy], x <- [0..dx-1]]
-  ++
-  [Pos x y | y <- [0..sy], x <- [1+sx+dx..sx]]
+rectPoints (Vel (Pos dx dy)) (Size (Pos sx sy)) = do
+  (rX, rY) <-
+    [ ([0..sx], [0..dy-1])
+    , ([0..sx], [1+sy+dy..sy])
+    , ([0..dx-1], [0..sy])
+    , ([1+sx+dx..sx], [0..sy])
+    ]
+  x <- rX
+  y <- rY
+  return $ Pos x y
 
 randChoice :: [a] -> StdGen -> (a, StdGen)
 randChoice l gen =
