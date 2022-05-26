@@ -118,12 +118,17 @@ tickLayers :: Vel -> [RainLayer] -> [RainLayer]
 tickLayers v = map $ \rl -> rl { rainMap = M.mapKeys (addVel v) $ rainMap rl }
 
 spawnRain :: [Char] -> Size -> Vel -> [RainLayer] -> State StdGen [RainLayer]
-spawnRain reps s _ rls = sequence $ do
+spawnRain reps s v rls = sequence $ do
   rl <- rls
   let spawnLoop = foldK $ replicate (weighting rl) $ \rli -> do
-        pos <- state $ randWindowBorder s
-        char <- state $ randChoice reps
-        return $ rli { rainMap = M.insert pos (Droplet char) $ rainMap rli }
+        skip <- state $ uniform
+        if skip
+        then
+          return rli
+        else do
+          pos <- state $ randWindowBorder s v
+          char <- state $ randChoice reps
+          return $ rli { rainMap = M.insert pos (Droplet char) $ rainMap rli }
   return $ spawnLoop rl
 
 windowScale :: Size -> Size
@@ -132,14 +137,18 @@ windowScale (Size (Pos x y)) = Size $ Pos (2*x + 2) (2*y + 2)
 foldK :: Monad m => [a -> m a] -> a -> m a
 foldK = foldr (<=<) return
 
-randWindowBorder :: Size -> StdGen -> (Pos, StdGen)
-randWindowBorder s = randChoice $ rectPoints $ windowScale s
+randWindowBorder :: Size -> Vel -> StdGen -> (Pos, StdGen)
+randWindowBorder s v = randChoice $ rectPoints v $ windowScale s
 
-rectPoints :: Size -> [Pos]
-rectPoints (Size (Pos sx sy)) =
-  [Pos x y | x <- [0..sx], y <- [0,sy]]
+rectPoints :: Vel -> Size -> [Pos]
+rectPoints (Vel (Pos dx dy)) (Size (Pos sx sy)) =
+  [Pos x (gy-1) | x <- [0..sx], gy <- [1..dy]]
   ++
-  [Pos x y | x <- [0,sx], y <- [1..sy-1]]
+  [Pos x (sy+1-gy) | x <- [0..sx], gy <- [1..(-dy)]]
+  ++
+  [Pos (gx-1) y | y <- [1..sy-1], gx <- [1..dx]]
+  ++
+  [Pos (sx+1-gx) y | y <- [1..sy-1], gx <- [1..(-dx)]]
 
 randChoice :: [a] -> StdGen -> (a, StdGen)
 randChoice l gen =
