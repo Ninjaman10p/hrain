@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
+
 module Sim
   ( Tick(..)
   , Name
@@ -13,6 +15,7 @@ module Sim
   ) where
 
 import Control.Monad (void, forever, (<=<))
+import Control.Lens
 
 import Brick
   ( App(..), AttrMap, BrickEvent(..), EventM, Next, Widget
@@ -75,6 +78,7 @@ data RainSim = RainSim
   { rainLayers :: [RainLayer]
   , windowSize :: Size
   , rainColors :: AttrMap
+  , interval   :: Int
   }
 
 -- Main
@@ -87,13 +91,13 @@ app = App { appDraw = drawUI
           , appAttrMap = rainColors
           }
 
-mkSim :: Int -> RainSim -> IO ()
-mkSim t rain = do
+mkSim :: RainSim -> IO ()
+mkSim rain = do
   chan <- newBChan 10
   _ <- forkIO . forever $ do
     gen <- initStdGen
     writeBChan chan $ Tick gen
-    threadDelay t
+    threadDelay $ interval rain
   let builder = V.mkVty V.defaultConfig
   initialVty <- builder
   void $ customMain initialVty builder (Just chan) app rain
