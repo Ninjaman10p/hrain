@@ -60,26 +60,28 @@ newtype Droplet = Droplet { rep :: Char }
 data Pos = Pos { pX :: Int, pY :: Int }
   deriving (Eq, Ord, Show)
 
-newtype Size = Size { toPos :: Pos }
-newtype Vel  = Vel { vToPos :: Pos }
+newtype Size = Size { corner :: Pos }
+newtype Vel  = Vel { toPos :: Pos }
   deriving (Show, Eq)
 
 type Rain = M.Map Pos Droplet
 
 data RainLayer = RainLayer
-  { rainStyle :: AttrName
-  , rainReps  :: [Char]
-  , weighting :: Int
-  , rainVel   :: Vel
-  , rainMap   :: Rain
+  { _rainStyle :: AttrName
+  , _rainReps  :: [Char]
+  , _weighting :: Int
+  , _rainVel   :: Vel
+  , _rainMap   :: Rain
   } deriving (Show, Eq)
+makeLenses ''RainLayer
 
 data RainSim = RainSim
-  { rainLayers :: [RainLayer]
-  , windowSize :: Size
-  , rainColors :: AttrMap
-  , interval   :: Int
+  { _rainLayers :: [RainLayer]
+  , _windowSize :: Size
+  , _rainColors :: AttrMap
+  , _interval   :: Int
   }
+makeLenses ''RainSim
 
 -- Main
 
@@ -88,7 +90,7 @@ app = App { appDraw = drawUI
           , appChooseCursor = neverShowCursor
           , appHandleEvent = handleEvent
           , appStartEvent = return
-          , appAttrMap = rainColors
+          , appAttrMap = view rainColors
           }
 
 mkSim :: RainSim -> IO ()
@@ -97,7 +99,7 @@ mkSim rain = do
   _ <- forkIO . forever $ do
     gen <- initStdGen
     writeBChan chan $ Tick gen
-    threadDelay $ interval rain
+    threadDelay $ view interval rain
   let builder = V.mkVty V.defaultConfig
   initialVty <- builder
   void $ customMain initialVty builder (Just chan) app rain
@@ -109,32 +111,32 @@ handleEvent p (AppEvent (Tick gen)) =
   let
     rainKey = gen
   in
-    continue $ p
-      { rainLayers = flip evalState rainKey $ do
-          let ticked = tickLayers $ rainLayers p
-          spawned <- spawnRain (windowSize p) ticked
-          return $ trimRain (windowSize p) spawned
-      }
+    continue $ flip (set rainLayers) p $
+      flip evalState rainKey $ do
+        let ticked = tickLayers $ view rainLayers p
+        spawned <- spawnRain (view windowSize p) ticked
+        return $ trimRain (view windowSize p) spawned
+
 handleEvent p (VtyEvent (V.EvKey (V.KChar 'q') [])) = halt p
 handleEvent p _                                     = continue p
 
 tickLayers :: [RainLayer] -> [RainLayer]
-tickLayers = map $ \rl -> rl { rainMap = M.mapKeys (addVel . rainVel $ rl) $ rainMap rl }
+tickLayers = map $ \rl -> over rainMap (M.mapKeys (addVel . view rainVel $ rl)) rl
 
 spawnRain :: Size -> [RainLayer] -> State StdGen [RainLayer]
 spawnRain s rls = sequence $ do
   rl <- rls
-  let spawnLoop = foldK $ replicate (weighting rl) $ \rli -> do
+  let spawnLoop = foldK $ replicate (view weighting rl) $ \rli -> do
         skip <- state $ uniform
         if skip
         then
           return rli
         else do
-          let vel = rainVel rli
-              reps = rainReps rli
+          let vel = view rainVel rli
+              reps = view rainReps rli
           pos <- state $ randWindowBorder s vel
           char <- state $ randChoice reps
-          return $ rli { rainMap = M.insert pos (Droplet char) $ rainMap rli }
+          return $ over rainMap (M.insert pos (Droplet char)) $ rli
   return $ spawnLoop rl
 
 windowScale :: Size -> Size
@@ -167,16 +169,16 @@ trimRain :: Size -> [RainLayer] -> [RainLayer]
 trimRain s =
   let
     wS = windowScale s
-    lX = 2 + 2*(pX . toPos $ wS)
-    lY = 2 + 2*(pY . toPos $ wS)
+    lX = 2 + 2*(pX . corner $ wS)
+    lY = 2 + 2*(pY . corner $ wS)
     predicate (Pos dX dY) _ = 0 <= dX && dX <= lX && 0 <= dY && dY <= lY
   in
-    map (\rl -> rl { rainMap = M.filterWithKey predicate $ rainMap rl })
+    map $ over rainMap (M.filterWithKey predicate)
 
 addVel :: Vel -> Pos -> Pos
 addVel v (Pos x y) = Pos
-  (x + (pX . vToPos $ v))
-  (y + (pY . vToPos $ v))
+  (x + (pX . toPos $ v))
+  (y + (pY . toPos $ v))
 
 -- Drawing
 
@@ -185,7 +187,7 @@ drawUI p = [window p]
 
 window :: RainSim -> Widget Name
 window r = C.center
-         $ windowBorder (windowSize r)
+         $ windowBorder (view windowSize r)
          $ mkRain r
 
 windowBorder :: Size -> Widget Name -> Widget Name
@@ -214,17 +216,17 @@ cropBox (Pos x y) (Size (Pos dx dy)) =
 
 mkRain :: RainSim -> Widget Name
 mkRain r = vBox $ do
-  y <- [0 .. 2*(pY . toPos . windowSize $ r) + 1]
+  y <- [0 .. 2*(pY . corner . view windowSize $ r) + 1]
   return . hBox $ do
-    x <- [0 .. 2*(pX . toPos . windowSize $ r) + 1]
+    x <- [0 .. 2*(pX . corner . view windowSize $ r) + 1]
     return $ rainSq (Pos x y) r
 
 rainSq :: Pos -> RainSim -> Widget Name
 rainSq p r =
   let
-    sqLayer rl = withAttr (rainStyle rl) . chr . rep <$> (M.lookup p $ rainMap rl)
+    sqLayer rl = withAttr (view rainStyle rl) . chr . rep <$> (M.lookup p $ view rainMap rl)
   in 
-    fromMaybe (chr ' ') . asum . map sqLayer $ rainLayers r
+    fromMaybe (chr ' ') . asum . map sqLayer $ view rainLayers r
 
 chr :: Char -> Widget a
 chr = str . return

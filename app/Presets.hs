@@ -19,155 +19,148 @@ import Brick
   ( fg
   , on
   , attrMap
+  , AttrMap
   )
 import Data.Map as M
 
 rainSim :: RainSim
 rainSim = RainSim
-  { rainLayers = do
+  { _rainLayers = do
       (m, w) <- [("rainfg", 10), ("rainbg", 3), ("rainb", 3)]
       return $ RainLayer 
-        { rainStyle = m
-        , rainReps = ",.'"
-        , weighting = w
-        , rainVel = Vel $ Pos (-1) 1
-        , rainMap = M.empty
+        { _rainStyle = m
+        , _rainReps = ",.'"
+        , _weighting = w
+        , _rainVel = Vel $ Pos (-1) 1
+        , _rainMap = M.empty
         }
-  , rainColors = attrMap (V.white `on` V.black)
+  , _rainColors = attrMap (V.white `on` V.black)
       [ ("rainfg", withStyles [V.italic] $ fg V.blue)
       , ("rainbg", withStyles [V.dim, V.italic] $ fg V.blue)
       , ("rainb", withStyles [V.italic] $ fg V.white)
       ]
-  , windowSize = Size $ Pos 20 10
-  , interval = 10000
+  , _windowSize = Size $ Pos 20 10
+  , _interval = 10000
   }
 
 windyRainSim :: RainSim
 windyRainSim = RainSim
-  { rainLayers = do
+  { _rainLayers = do
       (m, w) <- [("rainfg", 10), ("rainbg", 3), ("rainb", 3)]
       return $ RainLayer 
-        { rainStyle = m
-        , rainReps = ",.'"
-        , weighting = w
-        , rainVel = Vel $ Pos (-2) 1
-        , rainMap = M.empty
+        { _rainStyle = m
+        , _rainReps = ",.'"
+        , _weighting = w
+        , _rainVel = Vel $ Pos (-2) 1
+        , _rainMap = M.empty
         }
-  , rainColors = attrMap (V.white `on` V.black)
+  , _rainColors = attrMap (V.white `on` V.black)
       [ ("rainfg", withStyles [V.italic] $ fg V.blue)
       , ("rainbg", withStyles [V.dim, V.italic] $ fg V.blue)
       , ("rainb", withStyles [V.italic] $ fg V.white)
       ]
-  , windowSize = Size $ Pos 20 10
-  , interval = 10000
+  , _windowSize = Size $ Pos 20 10
+  , _interval = 10000
   }
 
 stormSim :: RainSim
 stormSim = RainSim
-  { rainLayers = rL <> sL
-  , rainColors = attrMap (V.white `on` V.black)
+  { _rainLayers = rL <> sL
+  , _rainColors = attrMap (V.white `on` V.black)
       [ ("rainfg", withStyles [V.italic] $ fg V.blue)
       , ("rainbg", withStyles [V.dim, V.italic] $ fg V.blue)
       , ("rainb", withStyles [V.italic] $ fg V.white)
       , ("lightning", withStyles [] $ fg V.blue)
       ]
-  , windowSize = Size $ Pos 20 10
-  , interval = 10000
+  , _windowSize = Size $ Pos 20 10
+  , _interval = 10000
   } where
     rL = do
       (m, w) <- [("rainfg", 10), ("rainbg", 3), ("rainb", 3)]
       return $ RainLayer 
-        { rainStyle = m
-        , rainReps = ",.'" 
-        , weighting = w
-        , rainVel = Vel $ Pos (-2) 1
-        , rainMap = M.empty
+        { _rainStyle = m
+        , _rainReps = ",.'" 
+        , _weighting = w
+        , _rainVel = Vel $ Pos (-2) 1
+        , _rainMap = M.empty
         }
     sL = return $ RainLayer
-        { rainStyle = "lightning"
-        , rainReps = "🗲" <> replicate 50 ' '
-        , weighting = 1
-        , rainVel = Vel $ Pos 1 3
-        , rainMap = M.empty
+        { _rainStyle = "lightning"
+        , _rainReps = "🗲" <> replicate 50 ' '
+        , _weighting = 1
+        , _rainVel = Vel $ Pos 1 3
+        , _rainMap = M.empty
         }
 
 snowSim :: RainSim
 snowSim = RainSim
-  { rainLayers = do
+  { _rainLayers = do
       (m, w) <- [("snowfg", 10), ("snowbg", 3), ("snowb", 3)]
       return $ RainLayer 
-        { rainStyle = m
-        , rainReps = "*#❄" 
-        , weighting = w
-        , rainVel = Vel $ Pos 1 1
-        , rainMap = M.empty
+        { _rainStyle = m
+        , _rainReps = "*#❄" 
+        , _weighting = w
+        , _rainVel = Vel $ Pos 1 1
+        , _rainMap = M.empty
         }
-  , rainColors = attrMap (V.white `on` V.black)
-      [ ("snowfg", withStyles [V.italic] $ V.blue `on` V.black)
-      , ("snowbg", withStyles [V.dim, V.italic] $ V.blue `on` V.black)
-      , ("snowb", withStyles [V.italic] $ V.white `on` V.black)
-      ]
-  , windowSize = Size $ Pos 20 10
-  , interval = 100000
+  , _rainColors = snowColors
+  , _windowSize = Size $ Pos 20 10
+  , _interval = 100000
   }
 
 snowstormSim :: RainSim
 snowstormSim = RainSim
-  { rainLayers = do
+  { _rainLayers = do
       (m, w) <- [("snowfg", 10), ("snowbg", 3), ("snowb", 3)]
       return $ RainLayer 
-        { rainStyle = m
-        , rainReps = "*#❄" 
-        , weighting = w
-        , rainVel = Vel $ Pos (-3) 1
-        , rainMap = M.empty
+        { _rainStyle = m
+        , _rainReps = "*#❄" 
+        , _weighting = w
+        , _rainVel = Vel $ Pos (-3) 1
+        , _rainMap = M.empty
         }
-  , rainColors = attrMap (V.white `on` V.black)
-      [ ("snowfg", withStyles [V.italic] $ V.blue `on` V.black)
-      , ("snowbg", withStyles [V.dim, V.italic] $ V.blue `on` V.black)
-      , ("snowb", withStyles [V.italic] $ V.white `on` V.black)
-      ]
-  , windowSize = Size $ Pos 20 10
-  , interval = 10000
+  , _rainColors = snowColors
+  , _windowSize = Size $ Pos 20 10
+  , _interval = 10000
   }
 
 matrixSim :: RainSim
 matrixSim = RainSim
-  { rainLayers = do
+  { _rainLayers = do
       (m, w) <- [("fg", 10), ("bg", 3)]
       return $ RainLayer 
-        { rainStyle = "matrix" <> m
-        , rainReps = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890/:?,.;☺" 
-        , weighting = w
-        , rainVel = Vel $ Pos 0 1
-        , rainMap = M.empty
+        { _rainStyle = "matrix" <> m
+        , _rainReps = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890/:?,.;☺" 
+        , _weighting = w
+        , _rainVel = Vel $ Pos 0 1
+        , _rainMap = M.empty
         }
-  , rainColors = attrMap (V.white `on` V.black)
+  , _rainColors = attrMap (V.white `on` V.black)
       [ ("matrix" <> "fg", withStyles [] $ fg V.green)
       , ("matrix" <> "bg", withStyles [V.dim] $ fg V.green)
       ]
-  , windowSize = Size $ Pos 20 10
-  , interval = 100000
+  , _windowSize = Size $ Pos 20 10
+  , _interval = 100000
   }
 
 rainbowSim :: RainSim
 rainbowSim = RainSim
-  { rainLayers = do
+  { _rainLayers = do
       (color, _) <- colors
       (modif, _) <- mods
       return $ RainLayer
-        { rainStyle = modif <> color
-        , weighting = 3
-        , rainVel = Vel $ Pos 1 1
-        , rainReps = "*"
-        , rainMap = M.empty
+        { _rainStyle = modif <> color
+        , _weighting = 3
+        , _rainVel = Vel $ Pos 1 1
+        , _rainReps = "*"
+        , _rainMap = M.empty
         }
-  , rainColors = attrMap (V.white `on` V.black) $ do
+  , _rainColors = attrMap (V.white `on` V.black) $ do
       (color, vColor) <- colors
       (modif, vMod) <- mods
       return $ (modif <> color, withStyles vMod $ fg vColor)
-  , windowSize = Size $ Pos 20 10
-  , interval = 20000
+  , _windowSize = Size $ Pos 20 10
+  , _interval = 20000
   } where
     colors =
       [ ("red", V.red)
@@ -184,69 +177,77 @@ rainbowSim = RainSim
   
 dwarfSim :: RainSim
 dwarfSim = RainSim
-  { rainLayers = do
+  { _rainLayers = do
       (m, w) <- [("fg", 10), ("bg", 3), ("b", 3)]
       return $ RainLayer 
-        { rainStyle = "rain" <> m
-        , rainReps = "☺" 
-        , weighting = w
-        , rainVel = Vel $ Pos 1 1
-        , rainMap = M.empty
+        { _rainStyle = "rain" <> m
+        , _rainReps = "☺" 
+        , _weighting = w
+        , _rainVel = Vel $ Pos 1 1
+        , _rainMap = M.empty
         }
-  , rainColors = attrMap (V.white `on` V.black)
+  , _rainColors = attrMap (V.white `on` V.black)
       [ ("rain" <> "fg", withStyles [V.italic] $ V.blue `on` V.black)
       , ("rain" <> "bg", withStyles [V.dim, V.italic] $ V.blue `on` V.black)
       , ("rain" <> "b", withStyles [V.italic] $ V.white `on` V.black)
       ]
-  , windowSize = Size $ Pos 20 10
-  , interval = 50000
+  , _windowSize = Size $ Pos 20 10
+  , _interval = 50000
   }
 
 catsDogsSim :: RainSim
 catsDogsSim = RainSim
-  { rainLayers = do
+  { _rainLayers = do
       (t, r) <-
         [ ([("fg", 10), ("bg", 3), ("b", 3)], ",.'")
         , ([("cd", 1)], "🐱🐶")
         ]
       (m, w) <- t
       return $ RainLayer 
-        { rainStyle = "rain" <> m
-        , rainReps = r
-        , weighting = w
-        , rainVel = Vel $ Pos 1 1
-        , rainMap = M.empty
+        { _rainStyle = "rain" <> m
+        , _rainReps = r
+        , _weighting = w
+        , _rainVel = Vel $ Pos 1 1
+        , _rainMap = M.empty
         }
-  , rainColors = attrMap (V.white `on` V.black)
+  , _rainColors = attrMap (V.white `on` V.black)
       [ ("rain" <> "fg", withStyles [V.italic] $ V.blue `on` V.black)
       , ("rain" <> "bg", withStyles [V.dim, V.italic] $ V.blue `on` V.black)
       , ("rain" <> "b", withStyles [V.italic] $ V.white `on` V.black)
       ]
-  , windowSize = Size $ Pos 20 10
-  , interval = 20000
+  , _windowSize = Size $ Pos 20 10
+  , _interval = 20000
   }
 
 knifeSim :: RainSim
 knifeSim = RainSim
-  { rainLayers = return $ RainLayer
-      { rainStyle = "knife"
-      , rainReps = "🔪"
-      , weighting = 10
-      , rainVel = Vel $ Pos 1 1
-      , rainMap = M.empty
+  { _rainLayers = return $ RainLayer
+      { _rainStyle = "knife"
+      , _rainReps = "🔪"
+      , _weighting = 10
+      , _rainVel = Vel $ Pos 1 1
+      , _rainMap = M.empty
       }
-  , rainColors = attrMap (V.white `on` V.black) $
+  , _rainColors = attrMap (V.white `on` V.black) $
       return ("knife", withStyles [V.italic] $ V.blue `on` V.black)
-  , windowSize = Size $ Pos 20 10
-  , interval = 10000
+  , _windowSize = Size $ Pos 20 10
+  , _interval = 10000
   }
 
 dolphinSim :: RainSim
 dolphinSim = RainSim
-  { rainLayers = return $ RainLayer "dolphin" "🐬" 3 vel $ M.empty
-  , rainColors = attrMap (V.white `on` V.black) $
+  { _rainLayers = return $ RainLayer "dolphin" "🐬" 3 vel $ M.empty
+  , _rainColors = attrMap (V.white `on` V.black) $
       return ("dolphin", withStyles [V.italic] $ V.blue `on` V.black)
-  , windowSize = Size $ Pos 20 10
-  , interval = 10000
+  , _windowSize = Size $ Pos 20 10
+  , _interval = 10000
   } where
     vel = Vel $ Pos 1 (-1)
+
+snowColors :: AttrMap
+snowColors = attrMap (V.white `on` V.black)
+      [ ("snowfg", withStyles [V.italic] $ V.blue `on` V.black)
+      , ("snowbg", withStyles [V.dim, V.italic] $ V.blue `on` V.black)
+      , ("snowb", withStyles [V.italic] $ V.white `on` V.black)
+      ]
+
