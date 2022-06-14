@@ -236,13 +236,13 @@ knifeSim = RainSim
 
 dolphinSim :: RainSim
 dolphinSim = RainSim
-  { _rainLayers = return $ RainLayer "dolphin" "🐬" 3 vel $ M.empty
+  { _rainLayers = return $ RainLayer "dolphin" "🐬" 3 v $ M.empty
   , _rainColors = attrMap (V.white `on` V.black) $
       return ("dolphin", withStyles [V.italic] $ V.blue `on` V.black)
   , _windowSize = Size $ Pos 20 10
   , _interval = 10000
   } where
-    vel = Vel $ Pos 1 (-1)
+    v = Vel $ Pos 1 (-1)
 
 snowColors :: AttrMap
 snowColors = attrMap (V.white `on` V.black)

@@ -1,14 +1,13 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings, TemplateHaskell, RankNTypes #-}
 
 module Sim
   ( Tick(..)
   , Name
   , mkSim
   , RainSim(..)
-  , Pos(..)
-  , Vel(..)
-  , Size(..)
+  , Pos(..), pX, pY
+  , Vel(..), vel
+  , Size(..), size
   , withStyle
   , withStyles
   , RainLayer(..)
@@ -17,8 +16,9 @@ module Sim
 import Control.Monad (void, forever, (<=<))
 import Control.Lens
 
+import Prelude hiding ((.), id)
 import Brick
-  ( App(..), AttrMap, BrickEvent(..), EventM, Next, Widget
+  ( App(..), AttrMap, BrickEvent(..), EventM, Next, Widget, AttrName
   , customMain
   , neverShowCursor
   , continue
@@ -30,9 +30,9 @@ import Brick
   , cropBottomTo, cropRightTo
   , hBox
   , withAttr
-  , AttrName
   , (<+>)
   )
+import Control.Category
 import System.Random
 import Brick.BChan (newBChan, writeBChan)
 import Brick.Widgets.Border
@@ -57,12 +57,19 @@ type Name = ()
 newtype Droplet = Droplet { rep :: Char }
   deriving (Show, Eq)
 
-data Pos = Pos { pX :: Int, pY :: Int }
+data Pos = Pos { _pX :: Int, _pY :: Int }
   deriving (Eq, Ord, Show)
+makeLenses ''Pos
 
-newtype Size = Size { corner :: Pos }
-newtype Vel  = Vel { toPos :: Pos }
+-- Lenses of Pos
+type Dim = forall f. Functor f => (Int -> f Int) -> Pos -> f Pos
+
+newtype Size = Size { _size :: Pos }
+makeLenses ''Size
+
+newtype Vel  = Vel { _vel :: Pos }
   deriving (Show, Eq)
+makeLenses ''Vel
 
 type Rain = M.Map Pos Droplet
 
@@ -86,7 +93,7 @@ makeLenses ''RainSim
 -- Main
 
 app :: App RainSim Tick Name
-app = App { appDraw = drawUI
+app = App { appDraw = return . renderWindow
           , appChooseCursor = neverShowCursor
           , appHandleEvent = handleEvent
           , appStartEvent = return
@@ -132,9 +139,9 @@ spawnRain s rls = sequence $ do
         then
           return rli
         else do
-          let vel = view rainVel rli
+          let v = view rainVel rli
               reps = view rainReps rli
-          pos <- state $ randWindowBorder s vel
+          pos <- state $ randWindowBorder s v
           char <- state $ randChoice reps
           return $ over rainMap (M.insert pos (Droplet char)) $ rli
   return $ spawnLoop rl
@@ -169,60 +176,62 @@ trimRain :: Size -> [RainLayer] -> [RainLayer]
 trimRain s =
   let
     wS = windowScale s
-    lX = 2 + 2*(pX . corner $ wS)
-    lY = 2 + 2*(pY . corner $ wS)
+    lX = trueSize pX wS
+    lY = trueSize pY wS
     predicate (Pos dX dY) _ = 0 <= dX && dX <= lX && 0 <= dY && dY <= lY
   in
     map $ over rainMap (M.filterWithKey predicate)
 
+trueSize :: Dim -> Size -> Int
+trueSize d = (+2) . (*2) . view (size . d)
+
 addVel :: Vel -> Pos -> Pos
-addVel v (Pos x y) = Pos
-  (x + (pX . toPos $ v))
-  (y + (pY . toPos $ v))
+addVel v = addDim pX v . addDim pY v
+
+addDim :: Dim -> Vel -> Pos -> Pos
+addDim d v = over d (+ view (vel . d) v)
 
 -- Drawing
 
-drawUI :: RainSim -> [Widget Name]
-drawUI p = [window p]
+renderWindow :: RainSim -> Widget Name
+renderWindow r = C.center
+         $ addWindowBorder (view windowSize r)
+         $ renderScene r
 
-window :: RainSim -> Widget Name
-window r = C.center
-         $ windowBorder (view windowSize r)
-         $ mkRain r
-
-windowBorder :: Size -> Widget Name -> Widget Name
-windowBorder s@(Size (Pos dx dy)) w =
+addWindowBorder :: Size -> Widget Name -> Widget Name
+addWindowBorder s w =
   let
-    positions :: [[Pos]]
+    axis d = [0, (2+) . view (size . d) $ s]
     positions = do
-      y <- [0,1]
+      y <- axis pY
       return $ do
-        x <- [0,1]
-        return $ Pos (x * (dx + 2)) (y * (dy + 2))
+        x <- axis pX
+        return $ Pos x y
   in
     withAttr "window" . border $
       vBox $ flip map positions $
-        hBox . map (\pos -> border $ fillCropBox pos s w)
+        hBox . map (\pos -> border $ cropAndFill pos s w)
 
-fillCropBox :: Pos -> Size -> Widget a -> Widget a
-fillCropBox p s w = cropBox p s $ w <+> fill ' '
+cropAndFill :: Pos -> Size -> Widget a -> Widget a
+cropAndFill p s w = cropToBox p s $ w <+> fill ' '
 
-cropBox :: Pos -> Size -> Widget a -> Widget a
-cropBox (Pos x y) (Size (Pos dx dy)) =
-    cropLeftBy x
-    . cropTopBy y
-    . cropRightTo (x + dx)
-    . cropBottomTo (y + dy)
+cropToBox :: Pos -> Size -> Widget a -> Widget a
+cropToBox (Pos x y) (Size (Pos dx dy)) =
+   cropLeftBy x
+   . cropTopBy y
+   . cropRightTo (x + dx)
+   . cropBottomTo (y + dy)
 
-mkRain :: RainSim -> Widget Name
-mkRain r = vBox $ do
-  y <- [0 .. 2*(pY . corner . view windowSize $ r) + 1]
+renderScene :: RainSim -> Widget Name
+renderScene r = vBox $ do
+  let axis d = [0 .. (1+) . (2*) $ view (windowSize . size . d) r]
+  y <- axis pY
   return . hBox $ do
-    x <- [0 .. 2*(pX . corner . view windowSize $ r) + 1]
-    return $ rainSq (Pos x y) r
+    x <- axis pX
+    return $ renderTile (Pos x y) r
 
-rainSq :: Pos -> RainSim -> Widget Name
-rainSq p r =
+renderTile :: Pos -> RainSim -> Widget Name
+renderTile p r =
   let
     sqLayer rl = withAttr (view rainStyle rl) . chr . rep <$> (M.lookup p $ view rainMap rl)
   in 
@@ -237,4 +246,4 @@ withStyle :: V.Style -> V.Attr -> V.Attr
 withStyle = flip V.withStyle
 
 withStyles :: [V.Style] -> V.Attr -> V.Attr
-withStyles s l = foldr withStyle l s
+withStyles = flip $ foldr withStyle

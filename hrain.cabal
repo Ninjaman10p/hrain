@@ -36,5 +36,6 @@ executable hrain
                     , random
                     , mtl
                     , lens
+                    , profunctors
     hs-source-dirs:   app
     default-language: Haskell2010
