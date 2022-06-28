@@ -16,7 +16,7 @@ module Sim
 import Control.Monad (void, forever, (<=<))
 import Control.Lens
 
-import Prelude hiding ((.), id)
+import Prelude
 import Brick
   ( App(..), AttrMap, BrickEvent(..), EventM, Next, Widget, AttrName
   , customMain
@@ -32,7 +32,6 @@ import Brick
   , withAttr
   , (<+>)
   )
-import Control.Category
 import System.Random
 import Brick.BChan (newBChan, writeBChan)
 import Brick.Widgets.Border
@@ -114,16 +113,12 @@ mkSim rain = do
 -- Handling events
 
 handleEvent :: RainSim -> BrickEvent Name Tick -> EventM Name (Next RainSim)
-handleEvent p (AppEvent (Tick gen)) =
-  let
-    rainKey = gen
-  in
-    continue $ flip (set rainLayers) p $
-      flip evalState rainKey $ do
-        let ticked = tickLayers $ view rainLayers p
-        spawned <- spawnRain (view windowSize p) ticked
-        return $ trimRain (view windowSize p) spawned
-
+handleEvent p (AppEvent (Tick gen)) = continue $
+  flip (set rainLayers) p $
+    flip evalState gen $ do
+      let ticked = tickLayers $ view rainLayers p
+      spawned <- spawnRain (view windowSize p) ticked
+      return $ trimRain (view windowSize p) spawned
 handleEvent p (VtyEvent (V.EvKey (V.KChar 'q') [])) = halt p
 handleEvent p _                                     = continue p
 
@@ -133,7 +128,7 @@ tickLayers = map $ \rl -> over rainMap (M.mapKeys (addVel . view rainVel $ rl)) 
 spawnRain :: Size -> [RainLayer] -> State StdGen [RainLayer]
 spawnRain s rls = sequence $ do
   rl <- rls
-  let spawnLoop = foldK $ replicate (view weighting rl) $ \rli -> do
+  let spawnLoop = foldK . replicate (view weighting rl) $ \rli -> do
         skip <- state $ uniform
         if skip
         then
@@ -153,7 +148,7 @@ foldK :: Monad m => [a -> m a] -> a -> m a
 foldK = foldr (<=<) return
 
 randWindowBorder :: Size -> Vel -> StdGen -> (Pos, StdGen)
-randWindowBorder s v = randChoice $ rectPoints v $ windowScale s
+randWindowBorder s v = randChoice . rectPoints v $ windowScale s
 
 rectPoints :: Vel -> Size -> [Pos]
 rectPoints (Vel (Pos dx dy)) (Size (Pos sx sy)) = do
@@ -178,9 +173,9 @@ trimRain s =
     wS = windowScale s
     lX = trueSize pX wS
     lY = trueSize pY wS
-    predicate (Pos dX dY) _ = 0 <= dX && dX <= lX && 0 <= dY && dY <= lY
+    p (Pos dX dY) _ = 0 <= dX && dX <= lX && 0 <= dY && dY <= lY
   in
-    map $ over rainMap (M.filterWithKey predicate)
+    map $ over rainMap (M.filterWithKey p)
 
 trueSize :: Dim -> Size -> Int
 trueSize d = (+2) . (*2) . view (size . d)
