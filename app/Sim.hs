@@ -93,14 +93,13 @@ data RainSim = RainSim
 makeLenses ''RainSim
 
 -- Main
-
 rainSimulator :: App RainSim Tick Name
 rainSimulator = App { appDraw = return . renderWindow
-          , appChooseCursor = neverShowCursor
-          , appHandleEvent = handleEvent
-          , appStartEvent = return
-          , appAttrMap = view rainColors
-          }
+                    , appChooseCursor = neverShowCursor
+                    , appHandleEvent = handleEvent
+                    , appStartEvent = return
+                    , appAttrMap = view rainColors
+                    }
 
 mkSim :: RainSim -> IO ()
 mkSim rain = do
@@ -147,7 +146,7 @@ spawnRainStep s = proc rl -> do
       id -< over rainMap (M.insert pos (Droplet char)) $ rl
 
 stateK :: (a -> s -> (b, s)) -> Kleisli (State s) a b
-stateK f = Kleisli (\a -> state $ f a)
+stateK f = Kleisli $ state . f
 
 windowScale :: Size -> Size
 windowScale (Size (Pos x y)) = Size $ Pos (2*x + 2) (2*y + 2)

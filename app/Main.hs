@@ -15,7 +15,6 @@ main = do
     (a:_) -> case M.lookup a sims of
       (Just sim) -> mkSim sim
       Nothing    -> putStrLn "ERROR: Simulation not found"
-        
 
 sims :: M.Map String RainSim
 sims = M.fromList
