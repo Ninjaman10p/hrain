@@ -94,24 +94,25 @@ mkSim rain = do
 -- Handling events
 
 handleEvent :: BrickEvent Name Tick -> EventM Name RainSim ()
-handleEvent (AppEvent (Tick gen)) =
-  modify $ \p -> flip (set rainLayers) p $
-    flip evalState gen $ do
-      let ticked = tickLayers $ view rainLayers p
-      spawned <- spawnRain (view windowSize p) ticked
-      return $ trimRain (view windowSize p) spawned
+handleEvent (AppEvent (Tick gen)) = do
+  winSize <- view windowSize <$> get
+  modify $ over rainLayers $
+    trimRain winSize
+    . flip evalState gen . spawnRain winSize
+    . tickLayers
 handleEvent (VtyEvent (V.EvKey (V.KChar 'q') [])) = halt
-handleEvent _                                     = return ()
+handleEvent (VtyEvent (V.EvKey (V.KChar 'c') [V.MCtrl])) = halt
+handleEvent _ = return ()
 
 tickLayers :: [RainLayer] -> [RainLayer]
 tickLayers = map $ \rl -> over rainMap (M.mapKeys (addVel . view rainVel $ rl)) rl
 
 spawnRain :: MonadState StdGen m => Dimensions -> [RainLayer] -> m [RainLayer]
-spawnRain s layers = sequence $ do
+spawnRain dim layers = sequence $ do
   layer <- layers
-  let spawnLoop = foldr (<=<) return
-                . replicate (view weighting layer)
-                $ spawnRainStep s
+  let loops = view weighting layer
+      spawnLoop = foldr (<=<) return $
+        replicate loops $ spawnRainStep dim
   return $ spawnLoop layer
 
 spawnRainStep :: MonadState StdGen m => Dimensions -> RainLayer -> m RainLayer
