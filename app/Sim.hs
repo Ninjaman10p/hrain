@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, TemplateHaskell, RankNTypes, Arrows #-}
+{-# LANGUAGE OverloadedStrings, TemplateHaskell, RankNTypes, FlexibleContexts #-}
 
 module Sim
   ( Tick(..)
@@ -13,11 +13,8 @@ module Sim
   , RainLayer(..)
   ) where
 
-import Control.Monad (void, forever)
+import Control.Monad
 import Control.Lens
-import Prelude hiding ((.), id)
-import Control.Category
-import Control.Arrow hiding (ArrowPlus (..))
 
 import Brick
 import System.Random
@@ -31,10 +28,7 @@ import Data.Maybe (fromMaybe)
 import Data.Foldable (asum)
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Monad.State.Class
-import Control.Monad.State.Lazy
-  ( State
-  , evalState
-  )
+import Control.Monad.State.Lazy (evalState)
 
 -- Types
 data Tick = Tick StdGen
@@ -100,9 +94,8 @@ mkSim rain = do
 -- Handling events
 
 handleEvent :: BrickEvent Name Tick -> EventM Name RainSim ()
-handleEvent (AppEvent (Tick gen)) = do
-  p <- get
-  put $ flip (set rainLayers) p $
+handleEvent (AppEvent (Tick gen)) =
+  modify $ \p -> flip (set rainLayers) p $
     flip evalState gen $ do
       let ticked = tickLayers $ view rainLayers p
       spawned <- spawnRain (view windowSize p) ticked
@@ -113,26 +106,23 @@ handleEvent _                                     = return ()
 tickLayers :: [RainLayer] -> [RainLayer]
 tickLayers = map $ \rl -> over rainMap (M.mapKeys (addVel . view rainVel $ rl)) rl
 
-spawnRain :: Dimensions -> [RainLayer] -> State StdGen [RainLayer]
-spawnRain s rls = sequence $ do
-  rl <- rls
-  let spawnLoop = foldr (.) id
-                . replicate (view weighting rl)
+spawnRain :: MonadState StdGen m => Dimensions -> [RainLayer] -> m [RainLayer]
+spawnRain s layers = sequence $ do
+  layer <- layers
+  let spawnLoop = foldr (<=<) return
+                . replicate (view weighting layer)
                 $ spawnRainStep s
-  return $ runKleisli spawnLoop rl
+  return $ spawnLoop layer
 
-spawnRainStep :: Dimensions -> Kleisli (State StdGen) RainLayer RainLayer
-spawnRainStep s = proc rl -> do
-  doSkip <- stateK $ const uniform -< ()
-  if doSkip
-    then id -< rl
+spawnRainStep :: MonadState StdGen m => Dimensions -> RainLayer -> m RainLayer
+spawnRainStep s layer = do
+  skip <- state uniform
+  if skip
+    then return layer
     else do
-      pos  <- stateK $ randWindowBorder s . arr (view rainVel)  -< rl
-      char <- stateK randChoice           . arr (view rainReps) -< rl
-      id -< over rainMap (M.insert pos (Droplet char)) $ rl
-
-stateK :: (a -> s -> (b, s)) -> Kleisli (State s) a b
-stateK f = Kleisli $ state . f
+      pos <- state $ randWindowBorder s $ view rainVel layer
+      char <- state $ randChoice $ view rainReps layer
+      return $ over rainMap (M.insert pos (Droplet char)) layer
 
 windowScale :: Dimensions -> Dimensions
 windowScale (Dimensions (Pos x y)) = Dimensions $ Pos (2*x + 2) (2*y + 2)
