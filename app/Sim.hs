@@ -31,7 +31,7 @@ import Control.Monad.State.Class
 import Control.Monad.State.Lazy (evalState)
 
 -- Types
-data Tick = Tick StdGen
+newtype Tick = Tick StdGen
 
 type Name = ()
 
@@ -139,24 +139,19 @@ rectPoints (Vel (Pos dx dy)) (Dimensions (Pos sx sy)) = do
     , ([0..dx-1], [0..sy])
     , ([1+sx+dx..sx], [0..sy])
     ]
-  x <- rX
-  y <- rY
-  return $ Pos x y
+  Pos <$> rX <*> rY
 
 randChoice :: [a] -> StdGen -> (a, StdGen)
 randChoice l gen =
-  let (ind, newGen) = randomR (0, (length l) - 1) gen
+  let (ind, newGen) = randomR (0, length l - 1) gen
   in  (l !! ind, newGen)
 
 trimRain :: Dimensions -> [RainLayer] -> [RainLayer]
-trimRain s =
-  let
-    wS = windowScale s
-    lX = trueSize pX wS
-    lY = trueSize pY wS
-    p (Pos dX dY) _ = 0 <= dX && dX <= lX && 0 <= dY && dY <= lY
-  in
-    map $ over rainMap (M.filterWithKey p)
+trimRain s = map $ over rainMap (M.filterWithKey p)
+  where wS = windowScale s
+        lX = trueSize pX wS
+        lY = trueSize pY wS
+        p (Pos dX dY) _ = 0 <= dX && dX <= lX && 0 <= dY && dY <= lY
 
 trueSize :: Dim -> Dimensions -> Int
 trueSize d = (+2) . (*2) . view (size . d)
@@ -209,7 +204,7 @@ renderScene r = vBox $ do
 renderTile :: Pos -> RainSim -> Widget Name
 renderTile p r =
   let
-    sqLayer rl = withAttr (view rainStyle rl) . chr . rep <$> (M.lookup p $ view rainMap rl)
+    sqLayer rl = withAttr (view rainStyle rl) . chr . rep <$> M.lookup p (view rainMap rl)
   in 
     fromMaybe (chr ' ') . asum . map sqLayer $ view rainLayers r
 
